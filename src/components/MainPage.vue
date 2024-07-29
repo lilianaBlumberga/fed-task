@@ -1,5 +1,6 @@
 <template>
     <div class="container text-white">
+        <!-- Start Section -->
         <div class="row justify-content-center align-items-center min-vh-100" v-if="!questions.length">
             <div class="col-lg-6 col-md-8 col-sm-12">
                 <div class="text-center">
@@ -38,31 +39,31 @@
                 </div>
             </div>
         </div>
+
+        <!-- Questions Section -->
         <div class="row justify-content-center align-items-center min-vh-100" v-if="questions.length">
             <div class="col-md-10">
-                <form class="pt-4" @submit.prevent="submitAnswers">
-                    <div class="row justify-content-center align-items-center">
-                        <div class="col-md-8">
-                            <div v-for="(question, index) in questions" :key="index" class="card mb-3">
-                                <div class="card-body">
-                                    <p class="fw-bold text-center" v-html="decodeHtml(question.question)"></p>
-                                    <div class="d-flex flex-wrap justify-content-center">
-                                        <div v-for="(answer, idx) in question.shuffledAnswers" :key="idx" class="form-check me-3 mb-2 px-4">
-                                            <input type="radio" :name="'question-' + index" :value="answer" v-model="userAnswers[index]" required class="form-check-input">
-                                            <label class="form-check-label">
-                                                {{ answer }}
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="d-flex justify-content-center mt-4">
-                                <button type="submit" class="btn btn-primary border-0 px-5 py-3 mt-4 fw-bold text-uppercase">Submit Answers</button>
-                            </div>
+                <div class="pt-4">
+                <!-- Display the current question -->
+                <div v-if="currentQuestionIndex < questions.length" class="card mb-3">
+                    <div class="card-body">
+                    <p class="fw-bold text-center" v-html="decodeHtml(questions[currentQuestionIndex].question)"></p>
+                    <div class="d-flex flex-wrap justify-content-center">
+                        <div v-for="(answer, idx) in questions[currentQuestionIndex].shuffledAnswers" :key="idx" class="form-check me-3 mb-2 px-4">
+                        <input type="radio" :name="'question-' + currentQuestionIndex" :value="answer" v-model="userAnswers[currentQuestionIndex]" required class="form-check-input" @change="goToNextQuestion">
+                        <label class="form-check-label">
+                            {{ answer }}
+                        </label>
                         </div>
                     </div>
-                </form>
-                <div class="modal fade" id="resultsModal" tabindex="-1" aria-labelledby="resultsModalLabel" aria-hidden="true" v-if="result !== null">
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal for results -->
+        <div class="modal fade" id="resultsModal" tabindex="-1" aria-labelledby="resultsModalLabel" aria-hidden="true" v-if="result !== null">
                     <div class="modal-dialog modal-dialog-centered text-dark">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -70,7 +71,7 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
-                                <p>You got {{ result }} out of {{ questions.length }} correct!</p>
+                                <p>You got <b>{{ result }}</b> out of <b>{{ questions.length }}</b> correct!</p>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-primary border-0 px-5 py-3 mt-4 fw-bold text-uppercase" @click="resetQuiz">Back to Start</button>
@@ -78,12 +79,10 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>    
     </div>
 </template>
   
-  <script>
+<script>
 import axios from 'axios';
 import { Modal } from 'bootstrap';
 
@@ -95,6 +94,7 @@ export default {
       type: '',
       questions: [],
       userAnswers: [],
+      currentQuestionIndex: 0,
       result: null
     };
   },
@@ -121,6 +121,7 @@ export default {
             };
           });
           this.userAnswers = new Array(this.questions.length).fill(null);
+          this.currentQuestionIndex = 0; // Reset to the first question
           this.result = null;
         } else {
           console.error('Error fetching trivia questions');
@@ -137,14 +138,23 @@ export default {
       txt.innerHTML = html;
       return txt.value;
     },
+    goToNextQuestion() {
+      if (this.currentQuestionIndex < this.questions.length - 1) {
+        this.currentQuestionIndex++;
+      } else {
+        this.submitAnswers();
+      }
+    },
     submitAnswers() {
       let correctCount = 0;
+      console.log(this.result);
       this.questions.forEach((question, index) => {
         if (this.userAnswers[index] === question.correct_answer) {
           correctCount++;
         }
       });
       this.result = correctCount;
+      console.log(this.result);
       this.$nextTick(() => {
         // Show modal after result is set
         const modalEl = document.getElementById('resultsModal');
@@ -160,6 +170,7 @@ export default {
       this.type = '';
       this.questions = [];
       this.userAnswers = [];
+      this.currentQuestionIndex = 0;
       this.result = null;
       // Close modal
       const modalEl = document.getElementById('resultsModal');
